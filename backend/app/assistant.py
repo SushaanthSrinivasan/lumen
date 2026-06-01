@@ -25,11 +25,7 @@ TRANSCRIBER = {"provider": "deepgram", "model": "nova-2", "language": "en"}
 # won't cut the agent off, but a real question will. See README / DECISIONS #10.
 STOP_SPEAKING_PLAN = {"numWords": 2, "voiceSeconds": 0.3, "backoffSeconds": 1}
 
-FIRST_MESSAGE = (
-    "Hi, I'm your Dupixent information assistant. I can walk you through the "
-    "mechanism, efficacy, dosing, safety, or access -- just ask, and I'll bring up "
-    "the relevant slide. Where would you like to start?"
-)
+FIRST_MESSAGE = "Hi, I'm your Dupixent assistant. What would you like to know?"
 
 # Client-side tool: no server URL, async (fire-and-forget). The browser receives
 # the call via vapi.on('message') and updates the slide; no result is returned to
