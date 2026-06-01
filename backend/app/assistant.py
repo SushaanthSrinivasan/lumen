@@ -58,6 +58,25 @@ GOTO_SLIDE_TOOL = {
 }
 
 
+# Client-side signal tool (no server URL, async). The agent calls this once when it
+# begins a full-deck walkthrough. The browser then PACES the walkthrough -- advancing
+# one slide per turn on its own -- so the deck never runs ahead of the narration the
+# way a single multi-slide turn would. No arguments, no result: a one-way signal.
+START_WALKTHROUGH_TOOL = {
+    "type": "function",
+    "async": True,
+    "function": {
+        "name": "start_walkthrough",
+        "description": (
+            "Call this ONCE, before presenting slide 1, when the HCP asks you to walk "
+            "through, present, or give an overview of the whole deck. It tells the app a "
+            "guided walkthrough is beginning so it can advance the slides for you."
+        ),
+        "parameters": {"type": "object", "properties": {}},
+    },
+}
+
+
 def _slide_block(s) -> str:
     bullets = "\n".join(f"  - {b}" for b in s.bullets)
     return (
@@ -82,14 +101,17 @@ HOW TO BEHAVE:
 - When the HCP asks about a topic, FIRST call the goto_slide tool with the slide \
 number that best matches, THEN give your spoken answer. Navigate before you speak.
 - If the HCP asks you to walk through, present, or give an overview of the whole deck, \
-present all the slides in order as one continuous walkthrough. Briefly mention they can \
-interrupt any time, then go through every slide on your own. For each slide: call \
-goto_slide for that slide right before you speak about it, give a one or two sentence \
-summary, then move straight to the next slide. Advance one slide at a time and do not \
-jump ahead, so the screen stays in step with your narration. Do NOT stop or ask \
-permission between slides; just keep going. The HCP can interrupt with a question at any \
-point; if they do, stop, answer it (navigating as usual), then offer to pick the \
-walkthrough back up.
+first call the start_walkthrough tool. Then present the slides one at a time. For the \
+current slide: call goto_slide for that one slide, give a two to three sentence summary, \
+then STOP. Do not ask whether to continue and do not say things like "moving on" or \
+"next slide"; the app advances the walkthrough for you and will tell you to continue. \
+Each time you are told to continue, present the very next slide the same way, in order, \
+until the whole deck is done. Present exactly ONE slide per turn and never call goto_slide \
+more than once in a turn, so the deck stays in step with your narration. If the HCP \
+interrupts with a question, stop the walkthrough and simply answer their question as usual. \
+The walkthrough stays paused after that; if the HCP then asks you to continue, resume, or \
+keep going through the deck, call start_walkthrough again and pick up from the next slide \
+you had not yet covered, in order, the same way as before.
 - Keep spoken answers to 2-3 sentences. This is a voice conversation -- be concise \
 and conversational, not a wall of text. Use the speaker guidance to sound like a \
 presenter, not someone reading bullet points.
@@ -116,11 +138,13 @@ def build_assistant() -> dict:
             "model": "gpt-4o",
             "temperature": 0.3,
             "messages": [{"role": "system", "content": build_system_prompt()}],
-            "tools": [GOTO_SLIDE_TOOL],
+            "tools": [GOTO_SLIDE_TOOL, START_WALKTHROUGH_TOOL],
         },
         "voice": VOICE,
         "transcriber": TRANSCRIBER,
         "stopSpeakingPlan": STOP_SPEAKING_PLAN,
-        # Deliver tool calls to the browser (not a server webhook).
-        "clientMessages": ["tool-calls"],
+        # Deliver tool calls to the browser (not a server webhook). "user-interrupted"
+        # is what the browser keys the walkthrough barge-in off of -- without it in
+        # this list Vapi never delivers the message and the pause is dead code.
+        "clientMessages": ["tool-calls", "user-interrupted"],
     }

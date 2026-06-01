@@ -45,47 +45,150 @@ export function createPresenterSession(
   let active = false;
   let running = false;
 
+  // --- Self-presenting walkthrough --------------------------------------------
+  // When the agent begins a deck walkthrough it calls the `start_walkthrough` tool;
+  // from then on the BROWSER drives the pacing. The agent presents one slide per
+  // turn and stops; on its `speech-end` we inject a system "present the next slide"
+  // control message so it advances on its own -- hands-free, yet still one slide per
+  // turn, so the deck never runs ahead of the voice (the bug a single multi-slide
+  // turn caused). If the user actually speaks (a real barge-in), we pause the
+  // walkthrough and let their question be answered normally.
+  let walkthroughActive = false;
+  let userSpokeThisTurn = false; // the user barged in during the current turn
+  let currentSlide = 0; // deck's current 1-based slide (0 = nothing shown yet)
+  let walkthroughTurns = 0; // auto-advances issued this walkthrough (runaway guard)
+  let continueTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearContinueTimer = () => {
+    if (continueTimer !== null) {
+      clearTimeout(continueTimer);
+      continueTimer = null;
+    }
+  };
+  // Stop the auto-advance and clear its per-walkthrough state. Note this does NOT
+  // touch `currentSlide` -- the deck stays on whatever slide is showing, which is
+  // what a later resume picks up from.
+  const stopWalkthrough = () => {
+    walkthroughActive = false;
+    walkthroughTurns = 0;
+    userSpokeThisTurn = false;
+    clearContinueTimer();
+  };
+
   vapi.on("call-start", () => {
     active = true;
+    currentSlide = 0;
+    stopWalkthrough(); // fresh call -- never inherit a previous session's state
     cb.onStatus("listening");
   });
 
   vapi.on("call-end", () => {
     active = false;
     running = false;
+    stopWalkthrough();
     cb.onStatus("idle"); // never leave the UI stuck on "speaking"
   });
 
   vapi.on("speech-start", () => {
+    // speech-end is only a ~1s VAD silence gap, not a turn boundary. If the agent
+    // (re)starts talking, any pending auto-continue from that gap must be cancelled
+    // -- otherwise we'd inject "next slide" mid-narration. (Fix D)
+    clearContinueTimer();
+    userSpokeThisTurn = false; // new agent turn -- clear last turn's barge-in flag
     if (active) cb.onStatus("speaking");
   });
 
   vapi.on("speech-end", () => {
     if (active) cb.onStatus("listening");
+
+    if (!walkthroughActive) return;
+    if (userSpokeThisTurn) {
+      // The user interrupted this slide -- stop auto-presenting and let their
+      // question be handled like any other turn.
+      stopWalkthrough();
+      return;
+    }
+    // End-of-deck check keyed off the deck's real position, not a from-1 counter,
+    // so a resume picks up correctly after a side question. (Fix B)
+    if (currentSlide >= slideCount) {
+      stopWalkthrough();
+      return;
+    }
+    // Runaway guard: if we've already issued slideCount advances and the deck still
+    // hasn't reached the end (e.g. the agent stopped emitting goto_slide), stop
+    // rather than auto-continuing forever. (Fix B)
+    if (walkthroughTurns >= slideCount) {
+      stopWalkthrough();
+      return;
+    }
+    // The agent finished this slide on its own -- advance after a short beat. The
+    // delay gives a late barge-in time to land and cancel the auto-continue, and
+    // speech-start cancels it if the agent was only pausing mid-narration. (Fix D)
+    clearContinueTimer();
+    continueTimer = setTimeout(() => {
+      continueTimer = null;
+      if (!active || !walkthroughActive || userSpokeThisTurn) return;
+      walkthroughTurns += 1;
+      try {
+        // A role:"system" control message, NOT a user "continue": unambiguous (it
+        // can't collide with a real user saying "continue") and it keeps the user
+        // turn history clean. triggerResponseEnabled defaults true, so it still
+        // drives the agent to present the next slide. (Fix C)
+        // `as any`: vapi.send's published type doesn't include the add-message
+        // control shape, but it's the SDK's documented control-message API.
+        vapi.send({
+          type: "add-message",
+          message: { role: "system", content: "Present the next slide now." },
+          triggerResponseEnabled: true,
+        } as any);
+      } catch {
+        /* if the continue can't be sent, the user can still say "next" */
+      }
+    }, 700);
   });
 
   vapi.on("error", (e: unknown) => {
     if (!running) return; // user already stopped/ended; don't resurrect an error
     active = false;
     running = false;
+    stopWalkthrough(); // don't leave an auto-advance armed after an error (Fix E)
     cb.onError(errorMessage(e));
     cb.onStatus("error");
   });
 
   vapi.on("message", (msg: any) => {
-    // High-frequency channel (transcripts, status, etc.) -- bail out cheaply on
-    // anything that isn't a tool call before doing any work.
-    if (!msg || msg.type !== "tool-calls") return;
+    if (!msg) return;
+
+    // A real barge-in. Vapi emits a dedicated 'user-interrupted' message when the
+    // user speaks over the agent -- a cleaner signal than parsing transcripts, and
+    // our injected control message is an add-message (not STT) so it never surfaces
+    // here. During a walkthrough this pauses the auto-advance. (Fix A)
+    if (msg.type === "user-interrupted") {
+      userSpokeThisTurn = true;
+      clearContinueTimer(); // a pending auto-continue must yield to the user
+      if (walkthroughActive) stopWalkthrough();
+      return;
+    }
+
+    // High-frequency channel (status, conversation updates, etc.) -- bail out
+    // cheaply on anything that isn't a tool call before doing any more work.
+    if (msg.type !== "tool-calls") return;
 
     const calls = msg.toolCallList;
     if (!Array.isArray(calls)) return;
 
-    // A single message may carry multiple tool calls (or other tools). Take the
-    // LAST goto_slide -- the final intended destination wins.
+    // A single message may carry multiple tool calls. Take the LAST goto_slide --
+    // the final intended destination wins -- and note a start_walkthrough signal.
     let target: number | null = null;
+    let startWalkthrough = false;
     for (const call of calls) {
       const fn = call?.function;
-      if (!fn || fn.name !== "goto_slide") continue;
+      if (!fn) continue;
+      if (fn.name === "start_walkthrough") {
+        startWalkthrough = true;
+        continue;
+      }
+      if (fn.name !== "goto_slide") continue;
 
       let args = fn.arguments;
       if (typeof args === "string") {
@@ -102,6 +205,17 @@ export function createPresenterSession(
       if (Number.isInteger(n)) target = n;
     }
 
+    if (startWalkthrough && active) {
+      // Arm only when the call is live, and only here AFTER the active check, so a
+      // tool-call that lands just after stop() can't re-arm a walkthrough. From here
+      // the browser paces it: advance on each speech-end until the deck's last slide
+      // or a barge-in. Reset the advance counter so a 2nd/resumed walkthrough starts
+      // clean. (Fixes B + E)
+      walkthroughActive = true;
+      walkthroughTurns = 0;
+      userSpokeThisTurn = false;
+    }
+
     if (target === null) return;
     // A tool-call can still arrive in the brief window after the call ends;
     // don't move the deck once the session is no longer active.
@@ -110,6 +224,7 @@ export function createPresenterSession(
     // rather than blanking the deck.
     if (target < 1 || target > slideCount) return;
 
+    currentSlide = target; // track the deck position for the end-of-deck check
     cb.onSlideIndex(target - 1); // the one and only 1-based -> 0-based conversion
   });
 
@@ -117,6 +232,8 @@ export function createPresenterSession(
     async start(assistant) {
       if (running) return; // already connecting or live -- guard against double-click
       running = true;
+      currentSlide = 0;
+      stopWalkthrough(); // clear any stale walkthrough state before a new call (Fix E)
       cb.onStatus("connecting");
       try {
         await vapi.start(assistant as any);
@@ -135,6 +252,7 @@ export function createPresenterSession(
       // back to "error" after the user deliberately cancelled.
       active = false;
       running = false;
+      stopWalkthrough();
       try {
         vapi.stop();
       } catch {
