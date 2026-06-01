@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+backend/venv/
+backend/.venv/
+
+# Node / Vite
+node_modules/
+frontend/dist/
+
+# Env files (keep .env.example committed)
+.env
+.env.local
+*.local
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
