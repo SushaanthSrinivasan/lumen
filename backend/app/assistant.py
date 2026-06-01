@@ -25,7 +25,10 @@ TRANSCRIBER = {"provider": "deepgram", "model": "nova-2", "language": "en"}
 # won't cut the agent off, but a real question will. See README / DECISIONS #10.
 STOP_SPEAKING_PLAN = {"numWords": 2, "voiceSeconds": 0.3, "backoffSeconds": 1}
 
-FIRST_MESSAGE = "Hi, I'm your Dupixent assistant. What would you like to know?"
+FIRST_MESSAGE = (
+    "Hi, I'm your Dupixent assistant. I can walk you through the deck, or you can "
+    "ask me anything. Where would you like to start?"
+)
 
 # Client-side tool: no server URL, async (fire-and-forget). The browser receives
 # the call via vapi.on('message') and updates the slide; no result is returned to
@@ -78,6 +81,13 @@ THE DECK (this is the complete, approved content -- the only information you may
 HOW TO BEHAVE:
 - When the HCP asks about a topic, FIRST call the goto_slide tool with the slide \
 number that best matches, THEN give your spoken answer. Navigate before you speak.
+- If the HCP asks you to walk through, present, or give an overview of the whole deck, \
+present the slides in order. For each slide, call goto_slide for that slide, then give a \
+one or two sentence summary, then move on to the next. Advance one slide at a time, \
+calling goto_slide right before you speak about each slide, so the screen stays in step \
+with your narration; do not jump ahead. Keep it brisk and pause naturally so the HCP can \
+interrupt. If they break in with a question, stop the walkthrough, answer it, then ask \
+whether they would like you to continue.
 - Keep spoken answers to 2-3 sentences. This is a voice conversation -- be concise \
 and conversational, not a wall of text. Use the speaker guidance to sound like a \
 presenter, not someone reading bullet points.
