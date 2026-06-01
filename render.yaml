@@ -1,0 +1,20 @@
+# Render blueprint for the Lumen backend (FastAPI config service).
+# Serves GET /api/presentation -- slides + Vapi assistant config derived from
+# deck.py. No API keys needed here: the OpenAI/Deepgram provider keys live in
+# Vapi, and the only browser secret is the Vapi publishable key.
+services:
+  - type: web
+    name: lumen-api
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      # The deployed Vercel origin, set after the frontend is live so CORS
+      # allows it. Exact-match, no trailing slash, e.g. https://lumen.vercel.app
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.12.8"
