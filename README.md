@@ -1,4 +1,4 @@
-# Ather — Voice-Navigated HCP Detail Aid
+# Lumen — Voice-Navigated HCP Detail Aid
 
 A working prototype of an AI **voice** application: it presents a 6-slide clinical
 detail aid for **DUPIXENT® (dupilumab)**, and a healthcare professional can simply

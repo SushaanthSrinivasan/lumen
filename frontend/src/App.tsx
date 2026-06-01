@@ -102,7 +102,7 @@ export default function App() {
 
   return (
     <Shell>
-      <Deck slides={data.slides} activeIndex={activeIndex} />
+      <Deck slides={data.slides} activeIndex={activeIndex} onNavigate={setActiveIndex} />
 
       <div className="footer">
         {missingKey ? (
@@ -123,8 +123,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="brand">Ather · AI Medical Information</div>
-        <div className="brand-sub">DUPIXENT® (dupilumab) — HCP detail aid</div>
+        <span className="brand-mark" aria-hidden="true" />
+        <div className="brand-lockup">
+          <span className="brand">Lumen</span>
+          <span className="brand-tag">Clinical voice agent</span>
+        </div>
+        <div className="brand-sub">DUPIXENT® (dupilumab) · for HCPs</div>
       </header>
       <main className="app-main">{children}</main>
     </div>

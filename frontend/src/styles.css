@@ -1,69 +1,211 @@
 :root {
-  --navy: #0b2e4f;
-  --navy-2: #103e69;
-  --teal: #1a9b8a;
-  --ink: #1c2733;
-  --muted: #5b6b7a;
-  --line: #e3e9ef;
-  --bg: #f3f6f9;
+  /* Surfaces */
+  --bg: #fafbff; /* canvas */
   --card: #ffffff;
+  --line: #e6ebf2; /* hairlines */
+
+  /* Accent */
+  --blue: #013bdb; /* electric brand accent (their signature) */
+  --cyan: #2ec7ff; /* light accent */
+
+  /* Text */
+  --ink: #1b2433; /* body */
+  --muted: #64748b; /* secondary */
+
+  /* Gradients — pulled from Synthio's own surfaces/spheres */
+  --grad-title: linear-gradient(100deg, #3f83e6 0%, #6d6fe6 60%, #7a69e6 100%);
+  --grad-btn: linear-gradient(135deg, #2847e0, #013bdb);
+  --grad-line: linear-gradient(90deg, #2ec7ff, #013bdb);
+
+  /* Shape */
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Type */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, monospace; /* <code> only */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: var(--ink);
+  background: var(--bg);
 }
 
 .app {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
   color: var(--ink);
+  /* soft blue light bleeding from the top — Synthio's surfaces are never flat */
+  background:
+    radial-gradient(80% 55% at 50% -12%, #eaf0ff 0%, rgba(234, 240, 255, 0) 60%),
+    var(--bg);
 }
 
-/* Header */
+/* Header --------------------------------------------------------------- */
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
-  padding: 14px 28px;
-  background: var(--navy);
+  padding: 18px 32px;
+  /* bright Synthio blue surface (#163282 -> #275ae8) with a periwinkle glow */
+  background:
+    radial-gradient(120% 170% at 10% -40%, rgba(78, 113, 251, 0.6) 0%, rgba(78, 113, 251, 0) 55%),
+    linear-gradient(118deg, #163282 0%, #275ae8 100%);
   color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   flex-wrap: wrap;
 }
+
+/* aperture mark — a "lumen" (bore of a vessel/needle), drawn, not an asset */
+.brand-mark {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid var(--cyan);
+  box-shadow:
+    0 0 0 4px rgba(46, 199, 255, 0.16),
+    0 0 14px rgba(46, 199, 255, 0.45);
+}
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .brand {
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  font-family: var(--font-sans);
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.8px; /* Synthio's signature tight tracking */
+  /* gradient text — light fill so it pops on the bright blue surface */
+  background: linear-gradient(95deg, #ffffff, #cde7ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #fff;
+}
+.brand-tag {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #e9f6ff;
 }
 .brand-sub {
-  font-size: 14px;
-  color: #aecbe4;
+  margin-left: auto;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  color: #eef3ff;
 }
 
-/* Main layout */
+/* Main layout ---------------------------------------------------------- */
 .app-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 24px;
-  gap: 24px;
+  padding: 40px 24px;
+  gap: 26px;
 }
 
-/* Deck */
+/* Deck ----------------------------------------------------------------- */
 .deck {
   width: 100%;
-  max-width: 860px;
+  max-width: 1080px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+}
+/* slide flanked by prev/next arrows */
+.deck-stage {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.deck-arrow {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--blue);
+  cursor: pointer;
+  box-shadow: 0 6px 18px -10px rgba(13, 25, 56, 0.4);
+  transition:
+    transform 80ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+.deck-arrow svg {
+  width: 22px;
+  height: 22px;
+}
+.deck-arrow:hover:not(:disabled) {
+  background: #f3f6ff;
+  transform: translateY(-1px);
+}
+.deck-arrow:active:not(:disabled) {
+  transform: translateY(0);
+}
+.deck-arrow:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.deck-arrow:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 .slide {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   background: var(--card);
   border: 1px solid var(--line);
-  border-top: 5px solid var(--teal);
-  border-radius: 14px;
-  padding: 40px 44px;
-  box-shadow: 0 10px 30px rgba(11, 46, 79, 0.08);
-  min-height: 380px;
+  border-radius: var(--radius);
+  padding: 54px 60px 50px;
+  box-shadow:
+    0 1px 2px rgba(13, 25, 56, 0.04),
+    0 18px 40px -24px rgba(13, 25, 56, 0.18);
+  min-height: 460px;
   animation: slidein 280ms ease;
+}
+/* gradient hairline across the top edge — their accent treatment */
+.slide::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--grad-line);
+}
+/* faint blue halo in the corner so the card reads as a lit surface */
+.slide::after {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle farthest-side, rgba(1, 59, 219, 0.07), rgba(1, 59, 219, 0));
+  pointer-events: none;
 }
 @keyframes slidein {
   from {
@@ -76,69 +218,97 @@
   }
 }
 .slide-eyebrow {
+  position: relative;
+  font-family: var(--font-sans);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--teal);
-  margin-bottom: 10px;
+  letter-spacing: 1.2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--blue);
+  margin-bottom: 14px;
 }
 .slide-title {
-  font-size: 30px;
-  line-height: 1.2;
-  margin: 0 0 24px;
-  color: var(--navy);
+  position: relative;
+  font-family: var(--font-sans);
+  font-size: clamp(32px, 3.6vw, 48px);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -1.6px; /* big, light, tight — the Synthio headline signature */
+  margin: 0 0 30px;
+  /* gradient text: near-black leading into electric blue */
+  background: var(--grad-title);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #4a76dd; /* fallback if background-clip unsupported */
 }
 .slide-bullets {
+  position: relative;
   margin: 0;
   padding-left: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 15px;
 }
 .slide-bullets li {
   position: relative;
   padding-left: 26px;
-  font-size: 18px;
-  line-height: 1.45;
+  font-size: 19px;
+  line-height: 1.55;
   color: var(--ink);
 }
 .slide-bullets li::before {
   content: "";
   position: absolute;
-  left: 4px;
+  left: 3px;
   top: 9px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--teal);
+  background: var(--blue);
 }
 
-/* Progress dots */
+/* Progress dots -------------------------------------------------------- */
 .deck-dots {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   justify-content: center;
 }
 .dot {
   width: 9px;
   height: 9px;
+  padding: 0;
+  /* transparent border enlarges the click target without growing the visual dot */
+  box-sizing: content-box;
+  border: 4px solid transparent;
+  background-clip: padding-box;
   border-radius: 50%;
-  background: #cdd8e2;
-  transition: all 200ms ease;
+  background-color: #cfd8e6;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease;
 }
-.dot-active {
-  background: var(--navy);
-  transform: scale(1.35);
+.dot:hover {
+  background-color: #9fb2c8;
+}
+.dot-active,
+.dot-active:hover {
+  background-color: var(--blue);
+  transform: scale(1.3);
+}
+.dot:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
-/* Footer / controls */
+/* Footer / controls ---------------------------------------------------- */
 .footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 .controls {
   display: flex;
@@ -146,13 +316,18 @@
   gap: 16px;
 }
 .btn {
+  font-family: var(--font-sans);
   border: none;
-  border-radius: 10px;
-  padding: 13px 26px;
-  font-size: 16px;
+  border-radius: 999px; /* pill — Synthio's primary-CTA shape */
+  padding: 13px 28px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.1px;
   cursor: pointer;
-  transition: transform 80ms ease, opacity 150ms ease;
+  transition:
+    transform 80ms ease,
+    box-shadow 150ms ease,
+    filter 150ms ease;
 }
 .btn:disabled {
   opacity: 0.5;
@@ -162,22 +337,30 @@
   transform: translateY(1px);
 }
 .btn-start {
-  background: var(--teal);
+  background: var(--grad-btn);
   color: #fff;
+  box-shadow: 0 8px 22px -8px rgba(1, 59, 219, 0.6);
+}
+.btn-start:not(:disabled):hover {
+  filter: brightness(1.08);
 }
 .btn-stop {
-  background: #d8453b;
+  background: #e23b35;
   color: #fff;
+  box-shadow: 0 8px 22px -8px rgba(226, 59, 53, 0.5);
 }
 
-/* Status badge */
+/* Status badge --------------------------------------------------------- */
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 9px;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 9px 15px;
   border-radius: 999px;
   background: #fff;
   border: 1px solid var(--line);
@@ -190,19 +373,19 @@
   background: #b6c2cd;
 }
 .status-listening .status-dot {
-  background: var(--teal);
-  box-shadow: 0 0 0 4px rgba(26, 155, 138, 0.18);
+  background: var(--blue);
+  box-shadow: 0 0 0 4px rgba(1, 59, 219, 0.16);
 }
 .status-speaking .status-dot {
-  background: #2f7fd1;
-  box-shadow: 0 0 0 4px rgba(47, 127, 209, 0.18);
+  background: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(46, 199, 255, 0.22);
   animation: pulse 1s infinite;
 }
 .status-connecting .status-dot {
   background: #e0a800;
 }
 .status-error .status-dot {
-  background: #d8453b;
+  background: #e23b35;
 }
 @keyframes pulse {
   0%,
@@ -214,11 +397,11 @@
   }
 }
 
-/* Notices */
+/* Notices -------------------------------------------------------------- */
 .notice {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 24px 28px;
   max-width: 560px;
   text-align: center;
@@ -239,14 +422,14 @@
   font-size: 14px;
 }
 .call-error {
-  color: #d8453b;
+  color: #e23b35;
   font-size: 14px;
   max-width: 560px;
   text-align: center;
 }
 code {
-  font-family: ui-monospace, Consolas, monospace;
-  background: #eef2f6;
+  font-family: var(--font-mono);
+  background: #eef2f8;
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.9em;

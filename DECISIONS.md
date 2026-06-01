@@ -140,6 +140,15 @@ Format: **Decision — Why — Decided against (and why not).**
     off-label questions, declines and offers Medical Information follow-up. That's the
     correct real-world behavior for HCP-facing material — a compliance signal, not just UX.
 
+22. **Manual navigation (clickable dots, prev/next arrows, ←/→ keys) sits alongside voice —
+    voice stays primary.** `goto_slide` is the headline navigator; the manual controls are a
+    browse courtesy so a reviewer without a mic — or anyone before starting a call — can still
+    read the deck. They set the same `activeIndex` the tool drives, so the agent overrides on
+    its next call; there's no competing source of truth.
+    *Against:* voice-only (purest to the thesis, but the deployed link is inert until you grant
+    mic and start a call); making arrows the *primary* affordance (more chrome, and it overstates
+    manual nav's role against the voice-first story).
+
 ---
 
 ## What I'd build next (named, not built)
